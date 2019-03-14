@@ -26,7 +26,9 @@ package org.csanchez.jenkins.plugins.kubernetes;
 
 import static org.csanchez.jenkins.plugins.kubernetes.KubernetesCloud.*;
 import static org.csanchez.jenkins.plugins.kubernetes.PodTemplateUtils.*;
+import static hudson.remoting.Base64.encode;
 
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -48,6 +50,7 @@ import org.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution
 import org.csanchez.jenkins.plugins.kubernetes.volumes.PodVolume;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.jenkinsci.main.modules.instance_identity.InstanceIdentity;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
@@ -312,6 +315,14 @@ public class PodTemplateBuilder {
             env.put("JENKINS_URL", url);
             if (!StringUtils.isBlank(cloud.getJenkinsTunnel())) {
                 env.put("JENKINS_TUNNEL", cloud.getJenkinsTunnel());
+                env.put("JENKINS_NO_HTTP_ENDPOINT", "YO");
+                try {
+                    InstanceIdentity instanceIdentity = new InstanceIdentity();
+                    env.put("JENKINS_INSTANCE_IDENTITY", encode(instanceIdentity.getPublic().getEncoded()));
+                }
+                catch (IOException e) {
+                    LOGGER.log(Level.WARNING, "Getting InstanceIdentity failed: " + e.getMessage(), e);
+                }
             }
         }
         Map<String, EnvVar> envVarsMap = new HashMap<>();
